@@ -16,7 +16,7 @@ const loaded = ref(false)
 
 function openCard() { app.openCardModal(card.value) }
 function onLoad() { loaded.value = true }
-function onError() { loaded.value = true }
+function onError(e) { loaded.value = true; e.target.style.display = 'none' }
 </script>
 
 <template>
