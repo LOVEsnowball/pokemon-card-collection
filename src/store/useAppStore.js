@@ -389,10 +389,20 @@ function initSession() {
         state.pendingToggle = null
         toggleCollection(pt.card, pt.collect)
       }
-      if (state.currentTab === 'mine') loadMineCards()
+      if (state.currentTab === 'mine') {
+        loadMineCards()
+      } else if (state.currentIllustrator) {
+        // 登录后自动刷新当前画师卡牌列表的收藏状态
+        selectIllustrator(state.currentIllustrator.id, state.currentIllustrator.name).catch(() => {})
+      }
     } else {
       state.currentUser = null
-      if (state.currentTab === 'mine') loadMineCards()
+      if (state.currentTab === 'mine') {
+        loadMineCards()
+      } else if (state.currentIllustrator) {
+        // 登出后立即清除当前画师卡牌列表的收藏标记
+        selectIllustrator(state.currentIllustrator.id, state.currentIllustrator.name).catch(() => {})
+      }
     }
   })
   // 首屏：恢复最近浏览的画师
