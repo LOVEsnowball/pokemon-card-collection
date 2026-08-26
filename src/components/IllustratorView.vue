@@ -1,13 +1,19 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useAppStore } from '../store/useAppStore.js'
 
 const app = useAppStore()
 const s = app.state
 const q = ref('')
+const dq = ref('') // 防抖后的搜索词
+let qTimer = null
+watch(q, (v) => {
+  clearTimeout(qTimer)
+  qTimer = setTimeout(() => { dq.value = v }, 200)
+})
 
 const filtered = computed(() => {
-  const kw = q.value.toLowerCase().trim()
+  const kw = dq.value.toLowerCase().trim()
   if (!kw) return s.illustrators
   return s.illustrators.filter(i => (i.name || '').toLowerCase().includes(kw))
 })

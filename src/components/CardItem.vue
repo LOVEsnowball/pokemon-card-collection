@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue'
 import { useAppStore } from '../store/useAppStore.js'
 import { cn, ja, fmtMoney, cardGame } from '../i18n/translate.js'
+import { thumbUrl } from '../utils/image.js'
 import checkIcon from '../assets/check.svg'
 
 const app = useAppStore()
@@ -13,10 +14,20 @@ const card = computed(() => props.card)
 const isCollected = computed(() => !!(s.collection && s.collection[card.value.id]))
 const price = computed(() => app.getPrice(card.value.id))
 const loaded = ref(false)
+// 缩略图代理；若代理失败回退原图
+const useFallback = ref(false)
+const src = computed(() => useFallback.value ? card.value.thumb_url : thumbUrl(card.value.thumb_url, 300))
 
 function openCard() { app.openCardModal(card.value) }
 function onLoad() { loaded.value = true }
-function onError(e) { loaded.value = true; e.target.style.display = 'none' }
+function onError(e) {
+  if (!useFallback.value && card.value.thumb_url) {
+    useFallback.value = true
+    return
+  }
+  loaded.value = true
+  e.target.style.display = 'none'
+}
 </script>
 
 <template>
@@ -25,7 +36,7 @@ function onError(e) { loaded.value = true; e.target.style.display = 'none' }
     <div class="card-img-wrap" :class="{ loaded }">
       <img
         class="card-img"
-        :src="card.thumb_url"
+        :src="src"
         :alt="cn(card.name)"
         loading="lazy"
         decoding="async"

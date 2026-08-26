@@ -41,96 +41,112 @@ function decodeEntities(str) {
 
 export function cn(name) {
   if (!name) return ''
+  if (cnCache.has(name)) return cnCache.get(name)
+  return _cn(name)
+}
+const cnCache = new Map()
+function cache(kind, key, value) {
+  ;(kind === 'CN' ? cnCache : jaCache).set(key, value)
+  return value
+}
+function _cn(name) {
+  if (!name) return ''
   const d = decodeEntities(name)
-  if (window.CN && CN[d]) return CN[d]
-  if (window.TCG_CN && TCG_CN[d]) return TCG_CN[d]
+  if (window.CN && CN[d]) return cache('CN', name, CN[d])
+  if (window.TCG_CN && TCG_CN[d]) return cache('CN', name, TCG_CN[d])
   if (d.indexOf(' & ') > 0) {
     const parts = d.split(' & ')
     const l = cn(parts[0]), r = cn(parts[1])
-    if (l && r && l !== parts[0] && r !== parts[1]) return l + '与' + r
+    if (l && r && l !== parts[0] && r !== parts[1]) return cache('CN', name, l + '与' + r)
   }
   let sp = d.match(/^(.+?) Spirit Link$/)
   if (sp) {
     const pk = cn(sp[1])
-    return (pk && pk !== sp[1] ? pk : sp[1]) + '心灵联结'
+    return cache('CN', name, (pk && pk !== sp[1] ? pk : sp[1]) + '心灵联结')
   }
   let tm = d.match(/^Ancient Technical Machine \[([^\]]+)\]$/)
-  if (tm) return '古代招式学习器[' + (ELEMENT_CN[tm[1]] || tm[1]) + ']'
+  if (tm) return cache('CN', name, '古代招式学习器[' + (ELEMENT_CN[tm[1]] || tm[1]) + ']')
   tm = d.match(/^Technical Machine: (.+)$/)
-  if (tm) return '招式学习器[' + (TM_CN[tm[1]] || tm[1]) + ']'
+  if (tm) return cache('CN', name, '招式学习器[' + (TM_CN[tm[1]] || tm[1]) + ']')
   tm = d.match(/^(.+?)'s Invention G-107 Technical Machine$/)
-  if (tm) return tmWho(tm[1], true) + '的发明G-107招式学习器'
+  if (tm) return cache('CN', name, tmWho(tm[1], true) + '的发明G-107招式学习器')
   tm = d.match(/^(.+?)'s Technical Machine(?: (\d+))?$/)
-  if (tm) return tmWho(tm[1], true) + '的招式学习器' + (tm[2] || '')
+  if (tm) return cache('CN', name, tmWho(tm[1], true) + '的招式学习器' + (tm[2] || ''))
   tm = d.match(/^(.+) Technical Machine(?: (\d+))?$/)
-  if (tm) return tmWho(tm[1], true) + '的招式学习器' + (tm[2] || '')
+  if (tm) return cache('CN', name, tmWho(tm[1], true) + '的招式学习器' + (tm[2] || ''))
   const w = d.split(' ')
   for (let i = w.length; i >= 1; i--) {
     const pre = w.slice(0, i).join(' ')
     if (window.ADJ_CN && ADJ_CN[pre]) {
       const base = w.slice(i).join(' ')
-      if (!base) return ADJ_CN[pre]
+      if (!base) return cache('CN', name, ADJ_CN[pre])
       const bt = cn(base)
-      return ADJ_CN[pre] + (bt && bt !== base ? bt : base)
+      return cache('CN', name, ADJ_CN[pre] + (bt && bt !== base ? bt : base))
     }
   }
   for (let i = 1; i <= w.length; i++) {
     const base = w.slice(0, i).join(' ')
     const suf = w.slice(i).join(' ')
     if (window.CN && CN[base] && suf && /^(V|VMAX|V MAX|VSTAR|V STAR|V-UNION|EX|ex|GX|G|☆|★|GL|FB|C|M|LV\.X|Lv\. X|\d+)$/i.test(suf)) {
-      return CN[base] + ' ' + suf
+      return cache('CN', name, CN[base] + ' ' + suf)
     }
   }
   const hm = d.match(/^(.+?)(-?(EX|GX))$/i)
-  if (hm && window.CN && CN[hm[1]]) return CN[hm[1]] + ' ' + hm[2]
-  return d
+  if (hm && window.CN && CN[hm[1]]) return cache('CN', name, CN[hm[1]] + ' ' + hm[2])
+  return cache('CN', name, d)
 }
 
 export function ja(name) {
   if (!name) return ''
+  if (jaCache.has(name)) return jaCache.get(name)
+  return _ja(name)
+}
+const jaCache = new Map()
+function _ja(name) {
+  if (!name) return ''
   const d = decodeEntities(name)
-  if (window.JA && JA[d]) return JA[d]
-  if (window.TCG_JA && TCG_JA[d]) return TCG_JA[d]
+  if (window.JA && JA[d]) return cache('JA', name, JA[d])
+  if (window.TCG_JA && TCG_JA[d]) return cache('JA', name, TCG_JA[d])
   if (d.indexOf(' & ') > 0) {
     const parts = d.split(' & ')
     const l = ja(parts[0]), r = ja(parts[1])
-    if (l && r) return l + '＆' + r
+    if (l && r) return cache('JA', name, l + '＆' + r)
   }
   let sp = d.match(/^(.+?) Spirit Link$/)
   if (sp) {
     const pk = ja(sp[1])
-    return (pk ? pk : sp[1]) + 'ソウルリンク'
+    return cache('JA', name, (pk ? pk : sp[1]) + 'ソウルリンク')
   }
   let tm = d.match(/^Ancient Technical Machine \[([^\]]+)\]$/)
-  if (tm) return '古代のワザマシン[' + (ELEMENT_JA[tm[1]] || tm[1]) + ']'
+  if (tm) return cache('JA', name, '古代のワザマシン[' + (ELEMENT_JA[tm[1]] || tm[1]) + ']')
   tm = d.match(/^Technical Machine: (.+)$/)
-  if (tm) return 'ワザマシン[' + (TM_JA[tm[1]] || tm[1]) + ']'
+  if (tm) return cache('JA', name, 'ワザマシン[' + (TM_JA[tm[1]] || tm[1]) + ']')
   tm = d.match(/^(.+?)'s Invention G-107 Technical Machine$/)
-  if (tm) return tmWho(tm[1], false) + 'の発明G-107ワザマシン'
+  if (tm) return cache('JA', name, tmWho(tm[1], false) + 'の発明G-107ワザマシン')
   tm = d.match(/^(.+?)'s Technical Machine(?: (\d+))?$/)
-  if (tm) return tmWho(tm[1], false) + 'のワザマシン' + (tm[2] || '')
+  if (tm) return cache('JA', name, tmWho(tm[1], false) + 'のワザマシン' + (tm[2] || ''))
   tm = d.match(/^(.+) Technical Machine(?: (\d+))?$/)
-  if (tm) return tmWho(tm[1], false) + 'のワザマシン' + (tm[2] || '')
+  if (tm) return cache('JA', name, tmWho(tm[1], false) + 'のワザマシン' + (tm[2] || ''))
   const w = d.split(' ')
   for (let i = w.length; i >= 1; i--) {
     const pre = w.slice(0, i).join(' ')
     if (window.ADJ_JA && ADJ_JA[pre]) {
       const base = w.slice(i).join(' ')
-      if (!base) return ADJ_JA[pre]
+      if (!base) return cache('JA', name, ADJ_JA[pre])
       const bt = ja(base)
-      return ADJ_JA[pre] + (bt ? bt : base)
+      return cache('JA', name, ADJ_JA[pre] + (bt ? bt : base))
     }
   }
   for (let i = 1; i <= w.length; i++) {
     const base = w.slice(0, i).join(' ')
     const suf = w.slice(i).join(' ')
     if (window.JA && JA[base] && suf && /^(V|VMAX|V MAX|VSTAR|V STAR|V-UNION|EX|ex|GX|G|☆|★|GL|FB|C|M|LV\.X|Lv\. X|\d+)$/i.test(suf)) {
-      return JA[base] + ' ' + suf
+      return cache('JA', name, JA[base] + ' ' + suf)
     }
   }
   const hm = d.match(/^(.+?)(-?(EX|GX))$/i)
-  if (hm && window.JA && JA[hm[1]]) return JA[hm[1]] + ' ' + hm[2]
-  return ''
+  if (hm && window.JA && JA[hm[1]]) return cache('JA', name, JA[hm[1]] + ' ' + hm[2])
+  return cache('JA', name, '')
 }
 
 export function escHtml(str) {

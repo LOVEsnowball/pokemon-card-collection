@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pokemon-collection-v14'; // Vue3+Vite 重构升级
+const CACHE_NAME = 'pokemon-collection-__BUILD_ID__'; // 构建时由 vite 自动注入，无需手动升版本
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();

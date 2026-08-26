@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useAppStore } from '../store/useAppStore.js'
 import { cn, cardGame } from '../i18n/translate.js'
 import CardItem from './CardItem.vue'
@@ -7,6 +7,12 @@ import CardItem from './CardItem.vue'
 const app = useAppStore()
 const s = app.state
 const q = ref('')
+const dq = ref('') // 防抖后的搜索词
+let qTimer = null
+watch(q, (v) => {
+  clearTimeout(qTimer)
+  qTimer = setTimeout(() => { dq.value = v }, 200)
+})
 
 const gameStats = computed(() => {
   let tcg = 0, pocket = 0
@@ -30,7 +36,7 @@ const filtered = computed(() => {
   } else {
     list.sort((a, b) => (s.collection[b.id] ? 1 : 0) - (s.collection[a.id] ? 1 : 0))
   }
-  const kw = q.value.toLowerCase().trim()
+  const kw = dq.value.toLowerCase().trim()
   if (kw) {
     list = list.filter(c =>
       (c.name || '').toLowerCase().includes(kw) ||
