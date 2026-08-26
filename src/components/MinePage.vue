@@ -1,8 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useAppStore } from '../store/useAppStore.js'
-import { fmtMoney, cardGame } from '../i18n/translate.js'
-import CardItem from './CardItem.vue'
+import { fmtMoney } from '../i18n/translate.js'
 import defaultAvatar from '../assets/favicon-180.png'
 
 const app = useAppStore()
@@ -111,19 +110,10 @@ function onImportChange(e) {
       </div>
 
       <div class="mine-section-title">我的收藏</div>
-      <div class="tabs game-tabs">
-        <button
-          v-for="f in mineGameTabs"
-          :key="f.key"
-          class="tab"
-          :class="{ active: mineGame === f.key }"
-          @click="mineGame = f.key"
-        >{{ f.label }} {{ f.count }}</button>
-      </div>
-      <div v-if="collectedCards.length" class="card-list mine-list">
-        <CardItem v-for="card in collectedCards" :key="card.id" :card="card" />
-      </div>
-      <div v-else class="empty">还没有收藏任何卡牌<br>去「首页」浏览并标记吧</div>
+      <button class="mine-collection-link" @click="app.openCollection()">
+        <span>已收藏 {{ s.collectedTotal }} 张 · 累计 ¥{{ fmtMoney(spent) }}</span>
+        <span class="mine-collection-link-arrow">查看收藏列表 ›</span>
+      </button>
 
       <div class="mine-section-title">数据工具</div>
       <div class="mine-toolbar">

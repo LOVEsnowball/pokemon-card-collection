@@ -298,3 +298,50 @@ body{
 .mine-toolbar{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 16px}
 .mine-toolbar .btn-sm{flex:1;min-width:92px}
 .hidden{display:none !important}
+/* 收藏列表入口（主页顶部卡片，带渐变背景） */
+.collection-entry{
+  margin:12px 12px 0;border-radius:var(--radius);
+  background:linear-gradient(135deg,#7c5cfc 0%,#4f3ad6 55%,#3b2aa8 100%);
+  border:1px solid rgba(255,255,255,.12);
+  cursor:pointer;overflow:hidden;position:relative;
+  box-shadow:0 6px 22px rgba(124,92,252,.28);
+  transition:transform .2s;
+}
+.collection-entry:active{transform:scale(.98)}
+.collection-entry::after{
+  content:"";position:absolute;right:-30px;top:-30px;width:120px;height:120px;
+  border-radius:50%;background:rgba(255,255,255,.08);
+}
+.collection-entry-inner{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:16px 18px;color:#fff;
+}
+.collection-entry-title{font-size:13px;opacity:.85;margin-bottom:6px}
+.collection-entry-nums{display:flex;align-items:baseline;gap:4px}
+.collection-entry-num{font-size:28px;font-weight:800}
+.collection-entry-unit{font-size:13px;opacity:.85}
+.collection-entry-sep{font-size:13px;opacity:.6;margin:0 6px}
+.collection-entry-amount{font-size:18px;font-weight:700}
+.collection-entry-arrow{font-size:32px;opacity:.7;line-height:1}
+/* 收藏列表页 */
+.collection-page{padding-bottom:calc(96px + var(--safe-bottom))}
+.collection-page .header-spacer{width:36px}
+.collection-hero{
+  display:flex;margin:12px 12px 0;background:var(--card-bg);
+  border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;
+}
+.collection-hero-item{
+  flex:1;display:flex;flex-direction:column;align-items:center;
+  padding:18px 10px;gap:4px;
+}
+.collection-hero-num{font-size:22px;font-weight:800;color:#fff}
+.collection-hero-label{font-size:12px;color:var(--text-dim)}
+.collection-hero-divider{width:1px;background:var(--border);margin:12px 0}
+/* 我的页收藏入口 */
+.mine-collection-link{
+  width:100%;display:flex;align-items:center;justify-content:space-between;
+  padding:14px 16px;border-radius:var(--radius-sm);
+  background:var(--card-bg);border:1px solid var(--border);
+  color:var(--text);font-size:14px;cursor:pointer;
+}
+.mine-collection-link-arrow{color:var(--accent);font-size:13px}

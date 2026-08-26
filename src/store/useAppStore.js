@@ -22,6 +22,8 @@ const state = reactive({
   collection: {}, // card_id -> true
   priceMap: {}, // card_id -> 金额
   currentTab: 'home', // home | mine
+  collectionOpen: false, // 收藏列表页（独立视图）
+  collectedTotal: 0, // 全量已收藏卡牌数（用于主页入口徽标）
   mineCards: [],
   mineCardsById: {},
   mineTotal: null,
@@ -152,8 +154,18 @@ function setGame(game) {
 }
 
 function switchTab(tab) {
+  state.collectionOpen = false
   if (state.currentTab === tab) return
   state.currentTab = tab
+}
+
+// ===== 收藏列表页 =====
+function openCollection() {
+  if (state.currentUser) loadMineCards()
+  state.collectionOpen = true
+}
+function closeCollection() {
+  state.collectionOpen = false
 }
 
 // ===== 收藏切换 =====
@@ -171,6 +183,7 @@ async function toggleCollection(card, collect) {
         collected: true
       }, { onConflict: 'user_id,card_id' })
       if (error) throw error
+      if (!state.collection[card.id]) state.collectedTotal++
       state.collection[card.id] = true
       if (state.priceMap[card.id]) syncPricesToCloud()
     } else {
@@ -180,6 +193,7 @@ async function toggleCollection(card, collect) {
         collected: false
       }, { onConflict: 'user_id,card_id' })
       if (error) throw error
+      if (state.collection[card.id]) state.collectedTotal = Math.max(0, state.collectedTotal - 1)
       delete state.collection[card.id]
       delete state.priceMap[card.id]
       savePriceMap()
@@ -250,6 +264,17 @@ function mineSpentTotal() {
 }
 
 // ===== 我的页 =====
+async function loadCollectedTotal() {
+  if (!state.currentUser) { state.collectedTotal = 0; return }
+  try {
+    const { count, error } = await sb.from('user_collections')
+      .select('card_id', { count: 'exact', head: true })
+      .eq('user_id', state.currentUser.id)
+      .eq('collected', true)
+    if (!error) state.collectedTotal = count || 0
+  } catch (e) { /* ignore */ }
+}
+
 async function loadMineCards() {
   try {
     if (state.mineTotal == null) {
@@ -268,6 +293,7 @@ async function loadMineCards() {
     const ids = (coll || []).map(c => c.card_id)
     state.collection = loadCollCache() || {}
     ids.forEach(id => { state.collection[id] = true })
+    state.collectedTotal = ids.length
 
     await loadPricesFromCloud()
 
@@ -290,6 +316,7 @@ async function clearAll() {
   if (!state.currentUser) { openAuth(); return }
   await sb.from('user_collections').delete().eq('user_id', state.currentUser.id)
   state.collection = {}
+  state.collectedTotal = 0
   state.mineCards = []
   state.priceMap = {}
   saveCollCache()
@@ -384,6 +411,7 @@ function initSession() {
       state.currentUser = session.user
       closeAuth()
       loadPricesFromCloud()
+      loadCollectedTotal()
       if (state.pendingToggle) {
         const pt = state.pendingToggle
         state.pendingToggle = null
@@ -426,7 +454,7 @@ export function useAppStore() {
     // 数据
     loadIllustrators, selectIllustrator, backToList, setFilter, setGame, switchTab,
     toggleCollection, clearAll, exportBackup, importBackup,
-    loadMineCards,
+    loadMineCards, openCollection, closeCollection, loadCollectedTotal,
     // auth
     openAuth, closeAuth, setAuthMode, doAuth, logout, initSession,
     // 弹层
