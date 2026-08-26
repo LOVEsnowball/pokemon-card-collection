@@ -1,15 +1,20 @@
 <script setup>
-import { computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
+import { computed, onMounted, onUnmounted, nextTick, watch, defineAsyncComponent, h } from 'vue'
 import { useAppStore } from './store/useAppStore.js'
 import HeaderBar from './components/HeaderBar.vue'
 import IllustratorView from './components/IllustratorView.vue'
-import CardView from './components/CardView.vue'
-import MinePage from './components/MinePage.vue'
-import CollectionList from './components/CollectionList.vue'
 import AuthModal from './components/AuthModal.vue'
-import CardModal from './components/CardModal.vue'
-import BackgroundModal from './components/BackgroundModal.vue'
 import TabBar from './components/TabBar.vue'
+
+// 非首屏组件异步分包，降低初始 JS 体积
+const spinner = { render: () => h('div', { class: 'async-loading' }, [h('div', { class: 'spinner' })]) }
+const asyncComp = (loader) => defineAsyncComponent({ loader, loadingComponent: spinner, delay: 150 })
+
+const CardView = asyncComp(() => import('./components/CardView.vue'))
+const MinePage = asyncComp(() => import('./components/MinePage.vue'))
+const CollectionList = asyncComp(() => import('./components/CollectionList.vue'))
+const CardModal = asyncComp(() => import('./components/CardModal.vue'))
+const BackgroundModal = asyncComp(() => import('./components/BackgroundModal.vue'))
 
 const app = useAppStore()
 const s = app.state

@@ -1,6 +1,7 @@
 import { reactive, readonly } from 'vue'
 import { sb } from '../supabaseClient.js'
 import { fmtMoney } from '../i18n/translate.js'
+import { getCache, setCache } from '../utils/cache.js'
 
 // ===== localStorage 键 =====
 const LS_VIEW = 'pk_view'
@@ -84,16 +85,38 @@ function saveCollCache() {
 }
 
 // ===== 画师 =====
-async function loadIllustrators() {
-  state.loading = true
-  const { data, error } = await sb.from('illustrators').select('*').order('name')
-  state.loading = false
-  if (error) { showToast('加载画师失败: ' + error.message); return }
-  state.illustrators = [...(data || [])].sort((a, b) => {
+const ILLUSTRATORS_CACHE = 'pk_illustrators'
+const CARD_CACHE_PREFIX = 'pk_cards_'
+const CACHE_TTL = 24 * 60 * 60 * 1000 // 静态数据缓存 24 小时
+
+function sortIllustrators(list) {
+  return [...list].sort((a, b) => {
     if (a.id === KOMIYA_ID) return -1
     if (b.id === KOMIYA_ID) return 1
     return 0
   })
+}
+
+async function loadIllustrators() {
+  const cached = getCache(ILLUSTRATORS_CACHE)
+  if (cached) {
+    state.illustrators = sortIllustrators(cached)
+    refreshIllustrators().catch(() => {}) // 后台静默刷新
+    return
+  }
+  state.loading = true
+  const { data, error } = await sb.from('illustrators').select('*').order('name')
+  state.loading = false
+  if (error) { showToast('加载画师失败: ' + error.message); return }
+  state.illustrators = sortIllustrators(data || [])
+  setCache(ILLUSTRATORS_CACHE, state.illustrators, CACHE_TTL)
+}
+
+async function refreshIllustrators() {
+  const { data, error } = await sb.from('illustrators').select('*').order('name')
+  if (error || !data) return
+  state.illustrators = sortIllustrators(data)
+  setCache(ILLUSTRATORS_CACHE, state.illustrators, CACHE_TTL)
 }
 
 // ===== 画师卡牌 =====
@@ -111,17 +134,23 @@ async function selectIllustrator(id, name) {
     state.currentFilter = 'all'
   }
 
-  const { data: cards, error } = await sb
-    .from('cards')
-    .select('*')
-    .eq('illustrator_id', id)
-    .order('name')
-  if (error) {
-    showToast('加载卡牌失败: ' + error.message)
-    state.loading = false
-    return
+  const cacheKey = CARD_CACHE_PREFIX + id
+  let cards = getCache(cacheKey)
+  if (!cards) {
+    const { data, error } = await sb
+      .from('cards')
+      .select('*')
+      .eq('illustrator_id', id)
+      .order('name')
+    if (error) {
+      showToast('加载卡牌失败: ' + error.message)
+      state.loading = false
+      return
+    }
+    cards = data || []
+    setCache(cacheKey, cards, CACHE_TTL)
   }
-  state.allCards = cards || []
+  state.allCards = cards
 
   // 收藏状态：已登录云端同步，未登录本地缓存
   state.collection = loadCollCache()
