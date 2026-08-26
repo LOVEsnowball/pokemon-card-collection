@@ -208,6 +208,7 @@ function loadBg() {
 function setBg(v) {
   state.bg = v || ''
   try { v ? localStorage.setItem(LS_BG, v) : localStorage.removeItem(LS_BG) } catch (e) { /* ignore */ }
+  syncPrefsToCloud()
 }
 const LS_ACCENT = 'pk_accent'
 function loadAccent() {
@@ -216,6 +217,7 @@ function loadAccent() {
 function setAccent(v) {
   state.accent = v || ''
   try { v ? localStorage.setItem(LS_ACCENT, v) : localStorage.removeItem(LS_ACCENT) } catch (e) { /* ignore */ }
+  syncPrefsToCloud()
 }
 function openBg() { state.bgOpen = true }
 function closeBg() { state.bgOpen = false }
@@ -420,8 +422,114 @@ async function importBackup(file) {
 function loadProfile() {
   try { return JSON.parse(localStorage.getItem(profileKey())) || {} } catch (e) { return {} }
 }
-function saveProfile(p) {
+function saveProfileRaw(p) {
   try { localStorage.setItem(profileKey(), JSON.stringify(p)) } catch (e) { /* ignore */ }
+}
+function saveProfile(p) {
+  saveProfileRaw(p)
+  syncProfileToCloud()
+}
+
+// ===== 云端同步（昵称/头像/主题色/背景 → user_metadata） =====
+const STORAGE_BUCKET = 'user-assets'
+
+function dataUrlToBlob(dataUrl) {
+  const [head, b64] = dataUrl.split(',')
+  const mime = (head.match(/data:([^;]+)/) || [])[1] || 'image/jpeg'
+  const bin = atob(b64)
+  const bytes = new Uint8Array(bin.length)
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
+  return new Blob([bytes], { type: mime })
+}
+
+async function uploadImageToStorage(dataUrl, folder) {
+  try {
+    const blob = dataUrlToBlob(dataUrl)
+    const ext = blob.type === 'image/png' ? 'png' : 'jpg'
+    const path = `${folder}/${state.currentUser.id}.${ext}`
+    const { error } = await sb.storage.from(STORAGE_BUCKET).upload(path, blob, { contentType: blob.type, upsert: true })
+    if (error) throw error
+    const { data } = sb.storage.from(STORAGE_BUCKET).getPublicUrl(path)
+    return data.publicUrl
+  } catch (e) {
+    console.warn('Storage 上传失败（可能未配置 bucket）:', e)
+    return null
+  }
+}
+
+async function syncProfileToCloud() {
+  if (!state.currentUser) return
+  const profile = loadProfile()
+  const data = { name: profile.name || '' }
+  const avatar = profile.avatar || ''
+  if (avatar.startsWith('data:')) {
+    const url = await uploadImageToStorage(avatar, 'avatars')
+    if (url) {
+      data.avatar = url
+      profile.avatar = url
+      saveProfileRaw(profile)
+    }
+  } else if (avatar) {
+    data.avatar = avatar
+  }
+  try {
+    await sb.auth.updateUser({ data })
+  } catch (e) { console.error('syncProfileToCloud:', e) }
+}
+
+async function syncPrefsToCloud() {
+  if (!state.currentUser) return
+  const data = { accent: state.accent || '' }
+  const bg = state.bg || ''
+  if (bg.includes('data:')) {
+    const m = bg.match(/url\(["']?(data:[^)"']+)["']?\)/)
+    if (m) {
+      const url = await uploadImageToStorage(m[1], 'backgrounds')
+      if (url) {
+        const newBg = `url("${url}")`
+        data.bg = newBg
+        state.bg = newBg
+        try { localStorage.setItem(LS_BG, newBg) } catch (e) { /* ignore */ }
+      }
+    }
+  } else if (bg) {
+    data.bg = bg
+  }
+  try {
+    await sb.auth.updateUser({ data })
+  } catch (e) { console.error('syncPrefsToCloud:', e) }
+}
+
+async function loadUserMetaFromCloud() {
+  if (!state.currentUser) return
+  try {
+    const { data } = await sb.auth.getUser()
+    const meta = (data && data.user && data.user.user_metadata) || {}
+    const profile = loadProfile()
+
+    if (typeof meta.name === 'string' && meta.name) profile.name = meta.name
+    if (typeof meta.avatar === 'string' && meta.avatar) profile.avatar = meta.avatar
+    saveProfileRaw(profile)
+
+    if (typeof meta.accent === 'string' && meta.accent) {
+      state.accent = meta.accent
+      try { localStorage.setItem(LS_ACCENT, meta.accent) } catch (e) { /* ignore */ }
+    }
+    if (typeof meta.bg === 'string' && meta.bg) {
+      state.bg = meta.bg
+      try { localStorage.setItem(LS_BG, meta.bg) } catch (e) { /* ignore */ }
+    }
+
+    // 首次登录：本地有、云端缺的小字段补推一次（base64 图片跳过，待下次变更经 Storage 上传）
+    const push = {}
+    if (!meta.name && profile.name) push.name = profile.name
+    if (!meta.accent && state.accent) push.accent = state.accent
+    if (!meta.bg && state.bg && !state.bg.includes('data:')) push.bg = state.bg
+    if (!meta.avatar && profile.avatar && !profile.avatar.startsWith('data:')) push.avatar = profile.avatar
+    if (Object.keys(push).length) {
+      await sb.auth.updateUser({ data: push })
+    }
+  } catch (e) { console.error('loadUserMetaFromCloud:', e) }
 }
 
 // ===== Auth =====
@@ -465,6 +573,7 @@ function initSession() {
       state.currentUser = session.user
       closeAuth()
       loadPricesFromCloud()
+      loadUserMetaFromCloud()
       loadCollectedTotal()
       if (state.pendingToggle) {
         const pt = state.pendingToggle
