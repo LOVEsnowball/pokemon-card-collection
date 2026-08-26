@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, onUnmounted, nextTick, watch } from 'vue'
+import { computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { useAppStore } from './store/useAppStore.js'
 import HeaderBar from './components/HeaderBar.vue'
 import IllustratorView from './components/IllustratorView.vue'
@@ -8,10 +8,16 @@ import MinePage from './components/MinePage.vue'
 import CollectionList from './components/CollectionList.vue'
 import AuthModal from './components/AuthModal.vue'
 import CardModal from './components/CardModal.vue'
+import BackgroundModal from './components/BackgroundModal.vue'
 import TabBar from './components/TabBar.vue'
 
 const app = useAppStore()
 const s = app.state
+
+const homeBgStyle = computed(() => {
+  if (s.currentTab !== 'home' || s.collectionOpen || !s.bg) return {}
+  return { background: s.bg, backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' }
+})
 
 // 吸顶偏移：动态跟随标题栏高度
 function measureHeader() {
@@ -45,7 +51,7 @@ watch(() => s.toast, (val) => {
 </script>
 
 <template>
-  <div>
+  <div class="app-root" :class="{ 'has-bg': s.currentTab === 'home' && !s.collectionOpen && s.bg }" :style="homeBgStyle">
     <!-- 首页 / 卡牌视图 -->
     <HeaderBar v-if="s.currentTab === 'home' && !s.collectionOpen" />
     <div v-if="s.currentTab === 'home' && !s.collectionOpen">
@@ -63,6 +69,7 @@ watch(() => s.toast, (val) => {
 
     <AuthModal />
     <CardModal v-if="s.cardModalCard" />
+    <BackgroundModal v-if="s.bgOpen" />
 
     <!-- 全屏 loading -->
     <div v-if="s.loading" class="loading-overlay"><div class="spinner"></div></div>

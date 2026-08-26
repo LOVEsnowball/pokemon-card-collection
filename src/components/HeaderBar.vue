@@ -25,7 +25,12 @@ function onLogout() {
     <div class="header-top">
       <button v-if="isCardView" class="header-back" @click="app.backToList()">←</button>
       <h1>{{ title }}</h1>
-      <button class="header-logout" @click="onLogout">{{ s.currentUser ? '退出' : '登录' }}</button>
+      <div class="header-actions">
+        <button v-if="!isCardView" class="header-bg-btn" title="设置背景" @click="app.openBg()">
+          <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M12 3a9 9 0 1 0 0 18 1.5 1.5 0 0 0 1.18-.57l.6-.7h-3.56l.6.7A1.5 1.5 0 0 0 12 21a9 9 0 0 0 9-9 9 9 0 0 0-9-9zm-5 7.5A1.5 1.5 0 1 1 7 12a1.5 1.5 0 0 1 0-1.5zm5 0a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zm5 0a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3z"/></svg>
+        </button>
+        <button class="header-logout" @click="onLogout">{{ s.currentUser ? '退出' : '登录' }}</button>
+      </div>
     </div>
     <div v-if="isCardView" class="stats">
       <div class="stat collected"><strong>{{ stats.collected }}</strong> 已收集</div>
