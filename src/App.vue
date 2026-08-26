@@ -14,9 +14,16 @@ import TabBar from './components/TabBar.vue'
 const app = useAppStore()
 const s = app.state
 
-const homeBgStyle = computed(() => {
-  if (s.currentTab !== 'home' || s.collectionOpen || !s.bg) return {}
-  return { background: s.bg, backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' }
+const rootStyle = computed(() => {
+  const style = {}
+  if (s.bg) {
+    style.background = s.bg
+    style.backgroundSize = 'cover'
+    style.backgroundPosition = 'center'
+    style.backgroundAttachment = 'fixed'
+  }
+  if (s.accent) style['--accent'] = s.accent
+  return style
 })
 
 // 吸顶偏移：动态跟随标题栏高度
@@ -51,7 +58,7 @@ watch(() => s.toast, (val) => {
 </script>
 
 <template>
-  <div class="app-root" :class="{ 'has-bg': s.currentTab === 'home' && !s.collectionOpen && s.bg }" :style="homeBgStyle">
+  <div class="app-root" :class="{ 'has-bg': !!s.bg }" :style="rootStyle">
     <!-- 首页 / 卡牌视图 -->
     <HeaderBar v-if="s.currentTab === 'home' && !s.collectionOpen" />
     <div v-if="s.currentTab === 'home' && !s.collectionOpen">

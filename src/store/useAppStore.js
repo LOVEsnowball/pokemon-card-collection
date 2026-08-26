@@ -24,8 +24,9 @@ const state = reactive({
   currentTab: 'home', // home | mine
   collectionOpen: false, // 收藏列表页（独立视图）
   collectedTotal: 0, // 全量已收藏卡牌数（用于主页入口徽标）
-  bgOpen: false, // 背景设置弹层
+  bgOpen: false, // 调色板弹层
   bg: '', // 主页背景（完整 CSS background 值，空=默认深色）
+  accent: '', // 主题色（空=默认紫色 #8b6cfc）
   mineCards: [],
   mineCardsById: {},
   mineTotal: null,
@@ -170,7 +171,7 @@ function closeCollection() {
   state.collectionOpen = false
 }
 
-// ===== 主页背景 =====
+// ===== 主页背景 / 主题色 =====
 const LS_BG = 'pk_bg'
 function loadBg() {
   try { return localStorage.getItem(LS_BG) || '' } catch (e) { return '' }
@@ -178,6 +179,14 @@ function loadBg() {
 function setBg(v) {
   state.bg = v || ''
   try { v ? localStorage.setItem(LS_BG, v) : localStorage.removeItem(LS_BG) } catch (e) { /* ignore */ }
+}
+const LS_ACCENT = 'pk_accent'
+function loadAccent() {
+  try { return localStorage.getItem(LS_ACCENT) || '' } catch (e) { return '' }
+}
+function setAccent(v) {
+  state.accent = v || ''
+  try { v ? localStorage.setItem(LS_ACCENT, v) : localStorage.removeItem(LS_ACCENT) } catch (e) { /* ignore */ }
 }
 function openBg() { state.bgOpen = true }
 function closeBg() { state.bgOpen = false }
@@ -421,6 +430,7 @@ function closeLightbox() { state.lightboxUrl = '' }
 function initSession() {
   loadPriceMapLocal()
   state.bg = loadBg()
+  state.accent = loadAccent()
   sb.auth.onAuthStateChange((event, session) => {
     if (session?.user) {
       state.currentUser = session.user
@@ -470,7 +480,7 @@ export function useAppStore() {
     loadIllustrators, selectIllustrator, backToList, setFilter, setGame, switchTab,
     toggleCollection, clearAll, exportBackup, importBackup,
     loadMineCards, openCollection, closeCollection, loadCollectedTotal,
-    openBg, closeBg, setBg,
+    openBg, closeBg, setBg, setAccent,
     // auth
     openAuth, closeAuth, setAuthMode, doAuth, logout, initSession,
     // 弹层

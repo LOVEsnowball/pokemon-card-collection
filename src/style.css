@@ -282,7 +282,7 @@ body{
 .mine-progress-bar{height:10px;background:var(--border);border-radius:6px;overflow:hidden}
 .mine-progress-fill{
   height:100%;width:0%;border-radius:6px;
-  background:linear-gradient(90deg,var(--accent),#9b7dff);transition:width .4s ease;
+  background:var(--accent);transition:width .4s ease;
 }
 .mine-progress-label{display:flex;justify-content:space-between;font-size:12px;color:var(--text-dim);margin-top:7px}
 .mine-progress-label strong{color:var(--accent);font-size:13px}
@@ -384,3 +384,14 @@ body{
 /* 页面根容器：默认透明，透出 body 的柔和渐变背景 */
 .app-root{min-height:100vh}
 .app-root.has-bg{min-height:100vh}
+/* 调色板：主题色 */
+.palette-section-title{font-size:13px;color:var(--text-dim);margin:16px 0 10px}
+.accent-swatches{display:flex;gap:12px;flex-wrap:wrap}
+.accent-swatch{
+  width:40px;height:40px;border-radius:50%;border:2px solid var(--border);
+  cursor:pointer;position:relative;display:flex;align-items:center;justify-content:center;
+  transition:transform .15s,box-shadow .15s;padding:0;
+}
+.accent-swatch:active{transform:scale(.92)}
+.accent-swatch.active{border-color:#fff;box-shadow:0 0 0 2px var(--accent)}
+.accent-swatch-check{color:#fff;font-size:16px;text-shadow:0 1px 2px rgba(0,0,0,.6)}

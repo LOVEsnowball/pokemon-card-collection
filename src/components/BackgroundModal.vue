@@ -15,11 +15,25 @@ const presets = [
   { id: 'sakura', name: '樱花粉', css: 'linear-gradient(160deg,#2b1b2e 0%,#a05578 50%,#e8a0b0 100%)' }
 ]
 
+const accents = [
+  { id: '', name: '默认紫', color: '#8b6cfc', css: '' },
+  { id: 'cyan', name: '青蓝', color: '#38bdf8', css: '#38bdf8' },
+  { id: 'emerald', name: '翡翠', color: '#34d399', css: '#34d399' },
+  { id: 'rose', name: '玫红', color: '#f472b6', css: '#f472b6' },
+  { id: 'orange', name: '暖橙', color: '#fb923c', css: '#fb923c' },
+  { id: 'gold', name: '金黄', color: '#fbbf24', css: '#fbbf24' }
+]
+
 const isActive = (id) => s.bg === presets.find(p => p.id === id)?.css || (id === '' && !s.bg)
+const isAccentActive = (id) => (id === '' ? !s.accent : s.accent === accents.find(a => a.id === id)?.css)
 
 function select(id) {
   const p = presets.find(x => x.id === id)
   if (p) app.setBg(p.css)
+}
+function selectAccent(id) {
+  const a = accents.find(x => x.id === id)
+  if (a) app.setAccent(a.css)
 }
 function pickFile() {
   fileInput.value && fileInput.value.click()
@@ -64,10 +78,27 @@ function resizeImage(file, size) {
     <div class="modal bg-modal">
       <div class="modal-body">
         <div class="bg-modal-title">
-          <span>设置主页背景</span>
+          <span>调色板</span>
           <button class="modal-close" @click="app.closeBg()">×</button>
         </div>
-        <p class="bg-modal-tip">选择预设背景，或上传自己的图片（建议竖图或深色图）</p>
+        <p class="bg-modal-tip">自定义主题色与全局背景，打造你的专属配色</p>
+
+        <div class="palette-section-title">主题色</div>
+        <div class="accent-swatches">
+          <button
+            v-for="a in accents"
+            :key="a.id || 'default'"
+            class="accent-swatch"
+            :class="{ active: isAccentActive(a.id) }"
+            :style="{ background: a.color }"
+            :title="a.name"
+            @click="selectAccent(a.id)"
+          >
+            <span v-if="isAccentActive(a.id)" class="accent-swatch-check">✓</span>
+          </button>
+        </div>
+
+        <div class="palette-section-title">背景</div>
         <div class="bg-presets">
           <div
             v-for="p in presets"

@@ -115,6 +115,12 @@ function onImportChange(e) {
         <span class="mine-collection-link-arrow">查看收藏列表 ›</span>
       </button>
 
+      <div class="mine-section-title">个性设置</div>
+      <button class="mine-collection-link" @click="app.openBg()">
+        <span>调色板 · 主题色与背景</span>
+        <span class="mine-collection-link-arrow">自定义配色 ›</span>
+      </button>
+
       <div class="mine-section-title">数据工具</div>
       <div class="mine-toolbar">
         <button class="btn-sm btn-sm-primary" @click="app.exportBackup()">导出备份</button>
