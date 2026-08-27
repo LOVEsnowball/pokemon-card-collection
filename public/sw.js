@@ -6,11 +6,18 @@ self.addEventListener('install', (event) => {
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(
-        keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))
-      )
-    ).then(() => self.clients.claim())
+    Promise.all([
+      caches.keys().then((keys) =>
+        Promise.all(
+          keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))
+        )
+      ),
+      self.clients.claim()
+    ]).then(async () => {
+      // 新版本接管后强制刷新所有打开的页面，避免旧缓存长期锁死导致白屏
+      const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: false });
+      clients.forEach((c) => c.navigate(c.url));
+    })
   );
 });
 
