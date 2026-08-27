@@ -64,6 +64,7 @@ const { visible, hasMore } = useInfiniteList(filtered)
     <div class="sticky-bar">
       <div class="search-wrap">
         <input v-model="q" class="search-input" placeholder="搜索卡牌名称或编号...">
+        <button v-if="q" class="search-clear" title="清空" @click="q = ''">×</button>
       </div>
       <div class="tabs game-tabs">
         <button

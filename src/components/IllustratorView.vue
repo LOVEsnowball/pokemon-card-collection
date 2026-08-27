@@ -50,6 +50,7 @@ function openCollection() {
     <div class="sticky-bar">
       <div class="search-wrap">
         <input v-model="q" class="search-input" placeholder="搜索画师...">
+        <button v-if="q" class="search-clear" title="清空" @click="q = ''">×</button>
       </div>
     </div>
     <div class="illustrator-list">

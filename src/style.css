@@ -77,13 +77,21 @@ body{
 .stat.collected{color:var(--collected)}
 .stat.remaining{color:var(--text-dim)}
 /* Search */
-.search-wrap{padding:12px 16px}
+.search-wrap{padding:12px 16px;position:relative}
 .search-input{
-  width:100%;padding:12px 16px;border-radius:24px;
+  width:100%;padding:12px 44px 12px 16px;border-radius:24px;
   background:var(--card-bg);border:1px solid var(--border);
   color:var(--text);font-size:15px;outline:none;
 }
 .search-input:focus{border-color:var(--accent)}
+.search-clear{
+  position:absolute;right:24px;top:50%;transform:translateY(-50%);
+  width:24px;height:24px;border-radius:50%;border:none;
+  background:var(--border);color:var(--text-dim);
+  display:flex;align-items:center;justify-content:center;
+  padding:0;cursor:pointer;line-height:1;font-size:15px;transition:background .2s;
+}
+.search-clear:hover{background:var(--text-dim);color:#111}
 /* 搜索框 + 筛选 tab 作为一个整体吸顶（紧贴标题栏下方） */
 .sticky-bar{
   position:sticky;top:var(--sticky-top,50px);z-index:90;
