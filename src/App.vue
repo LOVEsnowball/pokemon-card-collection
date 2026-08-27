@@ -31,13 +31,16 @@ const rootStyle = computed(() => {
 function measureHeader() {
   const h = document.querySelector('.header')
   if (!h) return
-  document.documentElement.style.setProperty('--sticky-top', h.offsetHeight + 'px')
+  const hh = h.offsetHeight
+  // 忽略无效/偏小的高度，避免把吸顶偏移写成 0 而让搜索栏被顶栏覆盖
+  if (!hh || hh < 1) return
+  document.documentElement.style.setProperty('--sticky-top', hh + 'px')
 }
 let ro = null
 onMounted(() => {
   app.initSession()
   app.loadIllustrators()
-  nextTick(measureHeader)
+  nextTick(() => requestAnimationFrame(measureHeader))
   if (window.ResizeObserver) {
     ro = new ResizeObserver(measureHeader)
     if (document.querySelector('.header')) ro.observe(document.querySelector('.header'))
@@ -45,6 +48,11 @@ onMounted(() => {
   window.addEventListener('resize', measureHeader)
   window.addEventListener('orientationchange', () => setTimeout(measureHeader, 120))
 })
+// 回到首页/卡牌列表等顶栏重挂载后再重新校准吸顶偏移
+watch(
+  () => [s.currentTab, s.collectionOpen, s.currentIllustrator],
+  () => nextTick(() => requestAnimationFrame(measureHeader))
+)
 onUnmounted(() => {
   if (ro) ro.disconnect()
   window.removeEventListener('resize', measureHeader)
