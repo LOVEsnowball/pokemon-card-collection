@@ -592,7 +592,7 @@ export function useAppStore() {
     loadIllustrators, selectIllustrator, backToList, setFilter, setGame, switchTab,
     toggleCollection, clearAll, exportBackup, importBackup,
     loadMineCards, openCollection, closeCollection, loadCollectedTotal,
-    openBg, closeBg, setBg, setAccent,
+    openBg, closeBg, setAccent,
     // auth
     openAuth, closeAuth, setAuthMode, doAuth, logout, initSession,
     // 弹层
