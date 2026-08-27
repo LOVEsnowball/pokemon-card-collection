@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useAppStore } from '../store/useAppStore.js'
 import { fmtMoney, cardGame } from '../i18n/translate.js'
 import CardItem from './CardItem.vue'
+import { useInfiniteList } from '../composables/useInfiniteList.js'
 
 const app = useAppStore()
 const s = app.state
@@ -32,6 +33,9 @@ const filtered = computed(() => {
 onMounted(() => {
   if (s.currentUser) app.loadMineCards()
 })
+
+// 收藏列表渐进渲染
+const { visible, hasMore } = useInfiniteList(filtered)
 </script>
 
 <template>
@@ -68,8 +72,14 @@ onMounted(() => {
 
     <div v-if="!s.currentUser" class="empty">登录后即可查看你的收藏</div>
     <div v-else-if="collectedCards.length" class="card-list mine-list">
-      <CardItem v-for="card in filtered" :key="card.id" :card="card" />
+      <CardItem
+        v-for="card in visible"
+        :key="card.id"
+        :card="card"
+        v-memo="[card, s.collection[card.id], s.priceMap[card.id]]"
+      />
     </div>
-    <div v-else class="empty">还没有收藏任何卡牌<br>去「首页」浏览并标记吧</div>
+    <div v-if="hasMore" class="list-more">上滑加载更多…</div>
+    <div v-else-if="!collectedCards.length" class="empty">还没有收藏任何卡牌<br>去「首页」浏览并标记吧</div>
   </div>
 </template>

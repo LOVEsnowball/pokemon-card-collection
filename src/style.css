@@ -193,6 +193,7 @@ body{
 .modal-btn-save{background:var(--accent);color:#fff}
 .modal-btn-collect{background:var(--collected);color:#fff}
 .modal-btn-remove{background:transparent;border:1px solid var(--danger);color:var(--danger)}
+.modal-btn:disabled{opacity:.55;cursor:not-allowed}
 /* Toast */
 .toast{
   position:fixed;bottom:100px;left:50%;transform:translateX(-50%);
@@ -229,6 +230,8 @@ body{
 }
 @keyframes spin{to{transform:rotate(360deg)}}
 .empty{text-align:center;padding:40px;color:var(--text-dim);font-size:14px}
+/* 分页渐进渲染：触底前的加载提示 */
+.list-more{text-align:center;padding:14px 0 22px;color:var(--text-dim);font-size:12px}
 /* Bottom Tab Bar */
 .tab-bar{
   position:fixed;bottom:0;left:0;right:0;z-index:120;

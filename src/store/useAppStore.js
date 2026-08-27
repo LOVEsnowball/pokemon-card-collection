@@ -222,42 +222,47 @@ function setAccent(v) {
 function openBg() { state.bgOpen = true }
 function closeBg() { state.bgOpen = false }
 
-// ===== 收藏切换 =====
+// ===== 收藏切换（乐观更新：先改界面，请求失败再回滚）=====
 async function toggleCollection(card, collect) {
   if (!state.currentUser) {
     state.pendingToggle = { card, collect }
     openAuth()
     return false
   }
+  const had = !!state.collection[card.id]
+  const hadPrice = state.priceMap[card.id]
+  const prevTotal = state.collectedTotal
+
+  // ---- 乐观更新 ----
+  if (collect) {
+    if (!had) state.collectedTotal++
+    state.collection[card.id] = true
+  } else {
+    if (had) state.collectedTotal = Math.max(0, state.collectedTotal - 1)
+    delete state.collection[card.id]
+    delete state.priceMap[card.id]
+  }
+  saveCollCache()
+  savePriceMap()
+
   try {
-    if (collect) {
-      const { error } = await sb.from('user_collections').upsert({
-        user_id: state.currentUser.id,
-        card_id: card.id,
-        collected: true
-      }, { onConflict: 'user_id,card_id' })
-      if (error) throw error
-      if (!state.collection[card.id]) state.collectedTotal++
-      state.collection[card.id] = true
-      if (state.priceMap[card.id]) syncPricesToCloud()
-    } else {
-      const { error } = await sb.from('user_collections').upsert({
-        user_id: state.currentUser.id,
-        card_id: card.id,
-        collected: false
-      }, { onConflict: 'user_id,card_id' })
-      if (error) throw error
-      if (state.collection[card.id]) state.collectedTotal = Math.max(0, state.collectedTotal - 1)
-      delete state.collection[card.id]
-      delete state.priceMap[card.id]
-      savePriceMap()
-      syncPricesToCloud()
-    }
-    saveCollCache()
+    const { error } = await sb.from('user_collections').upsert({
+      user_id: state.currentUser.id,
+      card_id: card.id,
+      collected: collect
+    }, { onConflict: 'user_id,card_id' })
+    if (error) throw error
+    if (state.priceMap[card.id]) syncPricesToCloud()
     if (state.currentTab === 'mine') await loadMineCards()
     showToast(collect ? '已标记为收集 ✓' : '已移除收藏')
     return true
   } catch (error) {
+    // ---- 回滚 ----
+    if (had) state.collection[card.id] = true; else delete state.collection[card.id]
+    state.collectedTotal = prevTotal
+    if (hadPrice !== undefined) state.priceMap[card.id] = hadPrice
+    saveCollCache()
+    savePriceMap()
     console.error('Collection error:', error)
     showToast('操作失败: ' + error.message)
     return false

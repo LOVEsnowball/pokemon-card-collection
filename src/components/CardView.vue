@@ -3,6 +3,7 @@ import { ref, computed, watch } from 'vue'
 import { useAppStore } from '../store/useAppStore.js'
 import { cn, cardGame } from '../i18n/translate.js'
 import CardItem from './CardItem.vue'
+import { useInfiniteList } from '../composables/useInfiniteList.js'
 
 const app = useAppStore()
 const s = app.state
@@ -53,6 +54,9 @@ const filters = [
   { key: 'collected', label: '已收集' },
   { key: 'uncollected', label: '未收集' }
 ]
+
+// 大列表渐进渲染：只渲染前一批，滚动到底追加
+const { visible, hasMore } = useInfiniteList(filtered)
 </script>
 
 <template>
@@ -81,8 +85,14 @@ const filters = [
       </div>
     </div>
     <div class="card-list">
-      <CardItem v-for="card in filtered" :key="card.id" :card="card" />
+      <CardItem
+        v-for="card in visible"
+        :key="card.id"
+        :card="card"
+        v-memo="[card, s.collection[card.id], s.priceMap[card.id]]"
+      />
     </div>
+    <div v-if="hasMore" class="list-more">上滑加载更多…</div>
     <div v-if="filtered.length === 0" class="empty">没有匹配的卡牌</div>
   </div>
 </template>

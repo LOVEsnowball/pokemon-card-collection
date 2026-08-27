@@ -5,6 +5,7 @@ import HeaderBar from './components/HeaderBar.vue'
 import IllustratorView from './components/IllustratorView.vue'
 import AuthModal from './components/AuthModal.vue'
 import TabBar from './components/TabBar.vue'
+import BackToTop from './components/BackToTop.vue'
 
 // 非首屏组件异步分包，降低初始 JS 体积
 const spinner = { render: () => h('div', { class: 'async-loading' }, [h('div', { class: 'spinner' })]) }
@@ -78,6 +79,9 @@ watch(() => s.toast, (val) => {
     <MinePage v-if="s.currentTab === 'mine' && !s.collectionOpen" />
 
     <TabBar />
+
+    <!-- 长列表滚动时回到顶部 -->
+    <BackToTop />
 
     <AuthModal />
     <CardModal v-if="s.cardModalCard" />
