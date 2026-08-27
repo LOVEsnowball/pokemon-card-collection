@@ -26,7 +26,6 @@ const state = reactive({
   collectionOpen: false, // 收藏列表页（独立视图）
   collectedTotal: 0, // 全量已收藏卡牌数（用于主页入口徽标）
   bgOpen: false, // 调色板弹层
-  bg: '', // 主页背景（完整 CSS background 值，空=默认深色）
   accent: '', // 主题色（空=默认紫色 #8b6cfc）
   mineCards: [],
   mineCardsById: {},
@@ -200,16 +199,7 @@ function closeCollection() {
   state.collectionOpen = false
 }
 
-// ===== 主页背景 / 主题色 =====
-const LS_BG = 'pk_bg'
-function loadBg() {
-  try { return localStorage.getItem(LS_BG) || '' } catch (e) { return '' }
-}
-function setBg(v) {
-  state.bg = v || ''
-  try { v ? localStorage.setItem(LS_BG, v) : localStorage.removeItem(LS_BG) } catch (e) { /* ignore */ }
-  syncPrefsToCloud()
-}
+// ===== 主题色 =====
 const LS_ACCENT = 'pk_accent'
 function loadAccent() {
   try { return localStorage.getItem(LS_ACCENT) || '' } catch (e) { return '' }
@@ -485,21 +475,6 @@ async function syncProfileToCloud() {
 async function syncPrefsToCloud() {
   if (!state.currentUser) return
   const data = { accent: state.accent || '' }
-  const bg = state.bg || ''
-  if (bg.includes('data:')) {
-    const m = bg.match(/url\(["']?(data:[^)"']+)["']?\)/)
-    if (m) {
-      const url = await uploadImageToStorage(m[1], 'backgrounds')
-      if (url) {
-        const newBg = `url("${url}")`
-        data.bg = newBg
-        state.bg = newBg
-        try { localStorage.setItem(LS_BG, newBg) } catch (e) { /* ignore */ }
-      }
-    }
-  } else if (bg) {
-    data.bg = bg
-  }
   try {
     await sb.auth.updateUser({ data })
   } catch (e) { console.error('syncPrefsToCloud:', e) }
@@ -520,16 +495,11 @@ async function loadUserMetaFromCloud() {
       state.accent = meta.accent
       try { localStorage.setItem(LS_ACCENT, meta.accent) } catch (e) { /* ignore */ }
     }
-    if (typeof meta.bg === 'string' && meta.bg) {
-      state.bg = meta.bg
-      try { localStorage.setItem(LS_BG, meta.bg) } catch (e) { /* ignore */ }
-    }
 
     // 首次登录：本地有、云端缺的小字段补推一次（base64 图片跳过，待下次变更经 Storage 上传）
     const push = {}
     if (!meta.name && profile.name) push.name = profile.name
     if (!meta.accent && state.accent) push.accent = state.accent
-    if (!meta.bg && state.bg && !state.bg.includes('data:')) push.bg = state.bg
     if (!meta.avatar && profile.avatar && !profile.avatar.startsWith('data:')) push.avatar = profile.avatar
     if (Object.keys(push).length) {
       await sb.auth.updateUser({ data: push })
@@ -571,7 +541,6 @@ function closeLightbox() { state.lightboxUrl = '' }
 // ===== 会话初始化 =====
 function initSession() {
   loadPriceMapLocal()
-  state.bg = loadBg()
   state.accent = loadAccent()
   sb.auth.onAuthStateChange((event, session) => {
     if (session?.user) {

@@ -365,36 +365,13 @@ body{
   color:var(--text);font-size:14px;cursor:pointer;
 }
 .mine-collection-link-arrow{color:var(--accent);font-size:13px}
-/* 自定义背景生效时：顶栏与吸顶栏半透明以透出背景 */
-.app-root.has-bg .header,
-.app-root.has-bg .sticky-bar{
-  background:rgba(15,15,22,.5);
-  -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
-}
-/* 背景设置弹层 */
+/* 调色板弹层 */
 .bg-modal{max-width:420px}
 .modal-close{background:none;border:none;color:var(--text-dim);font-size:24px;line-height:1;cursor:pointer;padding:0 4px}
 .bg-modal-title{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;font-size:17px;font-weight:700}
 .bg-modal-tip{font-size:13px;color:var(--text-dim);margin-bottom:16px}
-.bg-presets{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-.bg-preset{
-  aspect-ratio:16/9;border-radius:var(--radius-sm);cursor:pointer;
-  border:2px solid var(--border);position:relative;overflow:hidden;
-  display:flex;align-items:center;justify-content:center;transition:transform .15s;
-  background:var(--card-bg);
-}
-.bg-preset:active{transform:scale(.96)}
-.bg-preset.active{border-color:var(--accent)}
-.bg-preset-check{
-  position:absolute;top:6px;right:6px;width:18px;height:18px;border-radius:50%;
-  background:var(--accent);color:#fff;font-size:12px;display:flex;align-items:center;justify-content:center;
-}
-.bg-preset-upload{border-style:dashed;border-color:var(--border)}
-.bg-preset-plus{font-size:26px;color:var(--text-dim)}
-.bg-preset-names{margin-top:10px;font-size:13px;color:var(--text-dim);text-align:center}
 /* 页面根容器：默认透明，透出 body 的柔和渐变背景 */
 .app-root{min-height:100vh}
-.app-root.has-bg{min-height:100vh}
 /* 调色板：主题色 */
 .palette-section-title{font-size:13px;color:var(--text-dim);margin:16px 0 10px}
 .accent-swatches{display:flex;gap:12px;flex-wrap:wrap}

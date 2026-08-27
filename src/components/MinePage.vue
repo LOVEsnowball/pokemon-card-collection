@@ -117,7 +117,7 @@ function onImportChange(e) {
 
       <div class="mine-section-title">个性设置</div>
       <button class="mine-collection-link" @click="app.openBg()">
-        <span>调色板 · 主题色与背景</span>
+        <span>调色板 · 主题色</span>
         <span class="mine-collection-link-arrow">自定义配色 ›</span>
       </button>
 

@@ -6,6 +6,7 @@ import IllustratorView from './components/IllustratorView.vue'
 import AuthModal from './components/AuthModal.vue'
 import TabBar from './components/TabBar.vue'
 import BackToTop from './components/BackToTop.vue'
+import InstallPrompt from './components/InstallPrompt.vue'
 
 // 非首屏组件异步分包，降低初始 JS 体积
 const spinner = { render: () => h('div', { class: 'async-loading' }, [h('div', { class: 'spinner' })]) }
@@ -22,12 +23,6 @@ const s = app.state
 
 const rootStyle = computed(() => {
   const style = {}
-  if (s.bg) {
-    style.background = s.bg
-    style.backgroundSize = 'cover'
-    style.backgroundPosition = 'center'
-    style.backgroundAttachment = 'fixed'
-  }
   if (s.accent) style['--accent'] = s.accent
   return style
 })
@@ -64,7 +59,7 @@ watch(() => s.toast, (val) => {
 </script>
 
 <template>
-  <div class="app-root" :class="{ 'has-bg': !!s.bg }" :style="rootStyle">
+  <div class="app-root" :style="rootStyle">
     <!-- 首页 / 卡牌视图 -->
     <HeaderBar v-if="s.currentTab === 'home' && !s.collectionOpen" />
     <div v-if="s.currentTab === 'home' && !s.collectionOpen">
@@ -82,6 +77,9 @@ watch(() => s.toast, (val) => {
 
     <!-- 长列表滚动时回到顶部 -->
     <BackToTop />
+
+    <!-- 打开时提示生成桌面端（PWA 安装引导） -->
+    <InstallPrompt />
 
     <AuthModal />
     <CardModal v-if="s.cardModalCard" />
