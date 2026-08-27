@@ -1,6 +1,6 @@
 {
-  "name": "宝可梦卡牌收藏",
-  "short_name": "卡牌收藏",
+  "name": "TCG查询",
+  "short_name": "TCG查询",
   "id": ".",
   "start_url": ".",
   "scope": ".",

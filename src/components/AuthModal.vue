@@ -36,7 +36,7 @@ function onKey(e) {
   <div v-if="s.authOpen" class="auth-page" @click.self="app.closeAuth()">
     <div class="auth-card">
       <button class="auth-close" @click="app.closeAuth()">×</button>
-      <h1>宝可梦卡牌收藏</h1>
+      <h1>TCG查询</h1>
       <p class="sub">{{ s.authMode === 'login' ? '登录后即可同步收藏' : '注册新账号' }}</p>
       <div class="input-group">
         <label>邮箱</label>
