@@ -10,6 +10,7 @@ function priceKey() { return 'pk_price_' + (state.currentUser ? state.currentUse
 function profileKey() { return 'pk_profile_' + (state.currentUser ? state.currentUser.id : '') }
 
 const KOMIYA_ID = 22 // featured 画师
+const CARD_PAGE = 60 // 画师卡牌网络分批：每次拉取条数
 
 // ===== 响应式状态 =====
 const state = reactive({
@@ -41,11 +42,19 @@ const state = reactive({
   lightboxUrl: '',
 
   // toast
-  toast: ''
+  toast: '',
+  // 画师卡牌网络分批
+  cardsHasMore: false,
+  cardsLoadingMore: false,
+  // 收藏撤销提示
+  undoToast: null,
 })
 
 let mineChanged = false
 let priceSyncTimer = null
+let collFlushTimer = null
+let undoHideTimer = null
+const collBatch = new Map() // card_id -> { card, had }：排队批量落库
 
 // ===== Toast =====
 function showToast(msg) {
@@ -133,23 +142,17 @@ async function selectIllustrator(id, name) {
     state.currentFilter = 'all'
   }
 
+  // 网络分批：命中缓存全量直接用，否则首页拉一批，滚到底再追加
   const cacheKey = CARD_CACHE_PREFIX + id
-  let cards = getCache(cacheKey)
-  if (!cards) {
-    const { data, error } = await sb
-      .from('cards')
-      .select('*')
-      .eq('illustrator_id', id)
-      .order('name')
-    if (error) {
-      showToast('加载卡牌失败: ' + error.message)
-      state.loading = false
-      return
-    }
-    cards = data || []
-    setCache(cacheKey, cards, CACHE_TTL)
+  const cached = getCache(cacheKey)
+  if (cached) {
+    state.allCards = cached
+    state.cardsHasMore = false
+  } else {
+    state.allCards = []
+    state.cardsHasMore = true
+    await loadCardsRange(id, 0)
   }
-  state.allCards = cards
 
   // 收藏状态：已登录云端同步，未登录本地缓存
   state.collection = loadCollCache()
@@ -163,6 +166,33 @@ async function selectIllustrator(id, name) {
   }
   saveCollCache()
   state.loading = false
+}
+
+// 拉取某一批卡牌并合并收藏状态；offset 0 为首批
+async function loadCardsRange(id, offset) {
+  const { data, error } = await sb
+    .from('cards').select('*').eq('illustrator_id', id).order('name')
+    .range(offset, offset + CARD_PAGE - 1)
+  if (error) { showToast('加载卡牌失败: ' + error.message); return false }
+  const batch = data || []
+  state.allCards = offset === 0 ? batch : state.allCards.concat(batch)
+  state.cardsHasMore = batch.length === CARD_PAGE
+  if (state.currentUser && batch.length) {
+    const { data: coll } = await sb.from('user_collections')
+      .select('card_id,collected').eq('user_id', state.currentUser.id)
+      .in('card_id', batch.map(c => c.id))
+    if (coll) coll.forEach(c => { state.collection[c.card_id] = c.collected })
+  }
+  return true
+}
+
+// 滚动到底追加下一批卡牌
+async function loadMoreCards() {
+  if (!state.currentIllustrator || state.cardsLoadingMore || !state.cardsHasMore) return
+  state.cardsLoadingMore = true
+  await loadCardsRange(state.currentIllustrator.id, state.allCards.length)
+  state.cardsLoadingMore = false
+  saveCollCache()
 }
 
 function backToList() {
@@ -212,8 +242,8 @@ function setAccent(v) {
 function openBg() { state.bgOpen = true }
 function closeBg() { state.bgOpen = false }
 
-// ===== 收藏切换（乐观更新：先改界面，请求失败再回滚）=====
-async function toggleCollection(card, collect) {
+// ===== 收藏切换（乐观更新 + 批量落库：连点收藏会合并为一次写入）=====
+async function toggleCollection(card, collect, silentUndo = false) {
   if (!state.currentUser) {
     state.pendingToggle = { card, collect }
     openAuth()
@@ -235,19 +265,25 @@ async function toggleCollection(card, collect) {
   saveCollCache()
   savePriceMap()
 
+  if (collect) {
+    // 收集：合并进批量队列，统一落库，避免连点时请求堆积
+    collBatch.set(card.id, { card, had })
+    scheduleCollFlush()
+    if (!silentUndo) pushUndo(card, true)
+    return true
+  }
+
+  // 移除：即时落库（单点、误触少），若在排队收集里则先剔除
+  collBatch.delete(card.id)
   try {
-    const { error } = await sb.from('user_collections').upsert({
-      user_id: state.currentUser.id,
-      card_id: card.id,
-      collected: collect
-    }, { onConflict: 'user_id,card_id' })
+    const { error } = await sb.from('user_collections')
+      .delete().eq('user_id', state.currentUser.id).eq('card_id', card.id)
     if (error) throw error
     if (state.priceMap[card.id]) syncPricesToCloud()
     if (state.currentTab === 'mine') await loadMineCards()
-    showToast(collect ? '已标记为收集 ✓' : '已移除收藏')
+    if (!silentUndo) pushUndo(card, false)
     return true
   } catch (error) {
-    // ---- 回滚 ----
     if (had) state.collection[card.id] = true; else delete state.collection[card.id]
     state.collectedTotal = prevTotal
     if (hadPrice !== undefined) state.priceMap[card.id] = hadPrice
@@ -257,6 +293,57 @@ async function toggleCollection(card, collect) {
     showToast('操作失败: ' + error.message)
     return false
   }
+}
+
+// ===== 批量收藏落库（排队合并 + 失败回滚）=====
+function scheduleCollFlush() {
+  clearTimeout(collFlushTimer)
+  collFlushTimer = setTimeout(flushCollBatch, 600)
+}
+
+async function flushCollBatch() {
+  collFlushTimer = null
+  if (!state.currentUser || collBatch.size === 0) return
+  const items = [...collBatch.entries()]
+  collBatch.clear()
+  const list = items.map(([, { card }]) => card)
+  try {
+    await sb.from('user_collections').upsert(
+      list.map(c => ({ user_id: state.currentUser.id, card_id: c.id, collected: true })),
+      { onConflict: 'user_id,card_id' }
+    )
+    syncPricesToCloud()
+    if (state.currentTab === 'mine') await loadMineCards()
+  } catch (e) {
+    console.error('flushCollBatch:', e)
+    // 回滚本地这批发起的乐观勾选
+    for (const [id, { had }] of items) {
+      if (had) state.collection[id] = true; else delete state.collection[id]
+    }
+    saveCollCache()
+    if (state.currentUser) loadCollectedTotal().catch(() => {})
+    showToast('同步失败，请重试')
+  }
+}
+
+// ===== 收藏撤销提示 =====
+function pushUndo(card, collect) {
+  state.undoToast = {
+    text: collect ? '已标记为收集' : '已移除收藏',
+    card, collect
+  }
+  clearTimeout(undoHideTimer)
+  undoHideTimer = setTimeout(() => { state.undoToast = null }, 4000)
+}
+function clearUndo() {
+  clearTimeout(undoHideTimer)
+  state.undoToast = null
+}
+function undoLast() {
+  const u = state.undoToast
+  if (!u) return
+  clearUndo()
+  toggleCollection(u.card, !u.collect, true)
 }
 
 // ===== 价格 =====
@@ -589,8 +676,8 @@ export function useAppStore() {
     mineSpentTotal,
     loadProfile, saveProfile,
     // 数据
-    loadIllustrators, selectIllustrator, backToList, setFilter, setGame, switchTab,
-    toggleCollection, clearAll, exportBackup, importBackup,
+    loadIllustrators, selectIllustrator, loadMoreCards, backToList, setFilter, setGame, switchTab,
+    toggleCollection, undoLast, clearUndo, clearAll, exportBackup, importBackup,
     loadMineCards, openCollection, closeCollection, loadCollectedTotal,
     openBg, closeBg, setAccent,
     // auth

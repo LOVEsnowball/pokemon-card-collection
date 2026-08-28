@@ -101,6 +101,12 @@ watch(() => s.toast, (val) => {
       <img :src="s.lightboxUrl" alt="大图">
     </div>
 
+    <!-- 收藏撤销 -->
+    <div v-if="s.undoToast" class="undo-bar" @click="app.undoLast()">
+      <span>{{ s.undoToast.text }}</span>
+      <button class="undo-btn">撤销</button>
+    </div>
+
     <!-- Toast -->
     <div v-if="s.toast" class="toast">{{ s.toast }}</div>
   </div>
