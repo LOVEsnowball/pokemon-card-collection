@@ -55,8 +55,8 @@ const filters = [
   { key: 'uncollected', label: '未收集' }
 ]
 
-// 网络分批：数据由 store.loadMoreCards 触底追加，visible 跟随已加载全集
-const { visible } = useInfiniteList(filtered, () => { app.loadMoreCards() })
+// 本地切片：全量卡牌已在进入画师页时一次取齐，滚动到底仅渐进渲染，计数始终正确
+const { visible, hasMore } = useInfiniteList(filtered, { pageSize: 60 })
 </script>
 
 <template>
@@ -93,7 +93,7 @@ const { visible } = useInfiniteList(filtered, () => { app.loadMoreCards() })
         v-memo="[card, s.collection[card.id], s.priceMap[card.id]]"
       />
     </div>
-    <div v-if="s.cardsHasMore" class="list-more">{{ s.cardsLoadingMore ? '加载中…' : '上滑加载更多卡牌…' }}</div>
+    <div v-if="hasMore" class="list-more">继续上滑加载更多卡牌…</div>
     <div v-if="filtered.length === 0" class="empty">没有匹配的卡牌</div>
   </div>
 </template>

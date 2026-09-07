@@ -10,7 +10,6 @@ function priceKey() { return 'pk_price_' + (state.currentUser ? state.currentUse
 function profileKey() { return 'pk_profile_' + (state.currentUser ? state.currentUser.id : '') }
 
 const KOMIYA_ID = 22 // featured 画师
-const CARD_PAGE = 60 // 画师卡牌网络分批：每次拉取条数
 
 // ===== 响应式状态 =====
 const state = reactive({
@@ -43,9 +42,6 @@ const state = reactive({
 
   // toast
   toast: '',
-  // 画师卡牌网络分批
-  cardsHasMore: false,
-  cardsLoadingMore: false,
   // 收藏撤销提示
   undoToast: null,
 })
@@ -142,57 +138,55 @@ async function selectIllustrator(id, name) {
     state.currentFilter = 'all'
   }
 
-  // 网络分批：命中缓存全量直接用，否则首页拉一批，滚到底再追加
+  // 一次性预取该画师全部卡牌（分批拉取突破单次 1000 行上限），保证计数从一开始就是正确总数
   const cacheKey = CARD_CACHE_PREFIX + id
   const cached = getCache(cacheKey)
-  if (cached) {
-    state.allCards = cached
-    state.cardsHasMore = false
+  let cards
+  if (cached && cached.length) {
+    cards = cached
   } else {
-    state.allCards = []
-    state.cardsHasMore = true
-    await loadCardsRange(id, 0)
+    cards = await loadAllCards(id)
+    if (cards.length) setCache(cacheKey, cards, CACHE_TTL)
   }
+  state.allCards = cards
 
-  // 收藏状态：已登录云端同步，未登录本地缓存
+  // 收藏状态：已登录云端同步（全量 id 分批 in 查询），未登录本地缓存
   state.collection = loadCollCache()
-  const cardIds = state.allCards.map(c => c.id)
-  if (state.currentUser && cardIds.length > 0) {
-    const { data: coll } = await sb.from('user_collections')
-      .select('card_id,collected')
-      .eq('user_id', state.currentUser.id)
-      .in('card_id', cardIds)
-    if (coll) coll.forEach(c => { state.collection[c.card_id] = c.collected })
+  if (state.currentUser && cards.length > 0) {
+    await mergeColl(cards.map(c => c.id))
   }
   saveCollCache()
   state.loading = false
 }
 
-// 拉取某一批卡牌并合并收藏状态；offset 0 为首批
-async function loadCardsRange(id, offset) {
-  const { data, error } = await sb
-    .from('cards').select('*').eq('illustrator_id', id).order('name')
-    .range(offset, offset + CARD_PAGE - 1)
-  if (error) { showToast('加载卡牌失败: ' + error.message); return false }
-  const batch = data || []
-  state.allCards = offset === 0 ? batch : state.allCards.concat(batch)
-  state.cardsHasMore = batch.length === CARD_PAGE
-  if (state.currentUser && batch.length) {
-    const { data: coll } = await sb.from('user_collections')
-      .select('card_id,collected').eq('user_id', state.currentUser.id)
-      .in('card_id', batch.map(c => c.id))
-    if (coll) coll.forEach(c => { state.collection[c.card_id] = c.collected })
+// 全量拉取某画师全部卡牌：先取精确总行数，再按页循环，突破单次 1000 行限制
+async function loadAllCards(id) {
+  const { count } = await sb.from('cards')
+    .select('id', { count: 'exact', head: true })
+    .eq('illustrator_id', id)
+  const total = count || 0
+  const all = []
+  const per = 500
+  for (let offset = 0; offset < total; offset += per) {
+    const { data } = await sb.from('cards')
+      .select('*').eq('illustrator_id', id).order('name')
+      .range(offset, offset + per - 1)
+    if (!data || data.length === 0) break
+    all.push(...data)
   }
-  return true
+  return all
 }
 
-// 滚动到底追加下一批卡牌
-async function loadMoreCards() {
-  if (!state.currentIllustrator || state.cardsLoadingMore || !state.cardsHasMore) return
-  state.cardsLoadingMore = true
-  await loadCardsRange(state.currentIllustrator.id, state.allCards.length)
-  state.cardsLoadingMore = false
-  saveCollCache()
+// 批量合并收藏状态：分批 in 查询，避免超过 URL 长度限制
+async function mergeColl(ids) {
+  const stride = 400
+  for (let i = 0; i < ids.length; i += stride) {
+    const chunk = ids.slice(i, i + stride)
+    const { data } = await sb.from('user_collections')
+      .select('card_id,collected').eq('user_id', state.currentUser.id)
+      .in('card_id', chunk)
+    if (data) data.forEach(c => { state.collection[c.card_id] = c.collected })
+  }
 }
 
 function backToList() {
@@ -676,7 +670,7 @@ export function useAppStore() {
     mineSpentTotal,
     loadProfile, saveProfile,
     // 数据
-    loadIllustrators, selectIllustrator, loadMoreCards, backToList, setFilter, setGame, switchTab,
+    loadIllustrators, selectIllustrator, backToList, setFilter, setGame, switchTab,
     toggleCollection, undoLast, clearUndo, clearAll, exportBackup, importBackup,
     loadMineCards, openCollection, closeCollection, loadCollectedTotal,
     openBg, closeBg, setAccent,
