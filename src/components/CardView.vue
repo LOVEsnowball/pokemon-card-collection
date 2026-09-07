@@ -49,11 +49,22 @@ const filtered = computed(() => {
   return list
 })
 
-const filters = [
-  { key: 'all', label: '全部' },
-  { key: 'collected', label: '已收集' },
-  { key: 'uncollected', label: '未收集' }
-]
+// 当前游戏分组下的卡牌全集（不做搜索/收藏筛选），供筛选 tab 计数
+const gameBase = computed(() => {
+  if (s.currentGame === 'pocket') return s.allCards.filter(c => cardGame(c) === 'pocket')
+  if (s.currentGame === 'tcg') return s.allCards.filter(c => cardGame(c) !== 'pocket')
+  return s.allCards
+})
+
+const filters = computed(() => {
+  let coll = 0
+  for (const c of gameBase.value) if (s.collection[c.id]) coll++
+  return [
+    { key: 'all', label: '全部', count: gameBase.value.length },
+    { key: 'collected', label: '已收集', count: coll },
+    { key: 'uncollected', label: '未收集', count: gameBase.value.length - coll }
+  ]
+})
 
 // 本地切片：全量卡牌已在进入画师页时一次取齐，滚动到底仅渐进渲染，计数始终正确
 const { visible, hasMore } = useInfiniteList(filtered, { pageSize: 60 })
@@ -82,7 +93,7 @@ const { visible, hasMore } = useInfiniteList(filtered, { pageSize: 60 })
           class="tab"
           :class="{ active: s.currentFilter === f.key }"
           @click="app.setFilter(f.key)"
-        >{{ f.label }}</button>
+        >{{ f.label }} {{ f.count }}</button>
       </div>
     </div>
     <div class="card-list">
