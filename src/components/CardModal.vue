@@ -43,7 +43,7 @@ async function save() {
   <div class="modal-overlay" @click.self="app.closeCardModal()">
     <div class="modal">
       <div v-if="card.thumb_url" class="modal-img-wrap" @click.stop="app.openLightbox(card.thumb_url)">
-        <img class="modal-img" :src="card.thumb_url" :alt="card.name">
+        <img class="modal-img" :src="card.thumb_url" :alt="card.name" referrerpolicy="no-referrer">
         <span class="modal-img-hint">点击放大</span>
       </div>
       <div class="modal-body">

@@ -98,7 +98,7 @@ watch(() => s.toast, (val) => {
 
     <!-- Lightbox -->
     <div v-if="s.lightboxUrl" class="lightbox" @click="app.closeLightbox">
-      <img :src="s.lightboxUrl" alt="大图">
+      <img :src="s.lightboxUrl" alt="大图" referrerpolicy="no-referrer">
     </div>
 
     <!-- 收藏撤销 -->

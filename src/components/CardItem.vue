@@ -40,6 +40,7 @@ function onError(e) {
         :alt="cn(card.name)"
         loading="lazy"
         decoding="async"
+        referrerpolicy="no-referrer"
         @load="onLoad"
         @error="onError"
       >
