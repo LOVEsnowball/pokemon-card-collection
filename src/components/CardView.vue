@@ -67,7 +67,10 @@ const filters = computed(() => {
 })
 
 // 本地切片：全量卡牌已在进入画师页时一次取齐，滚动到底仅渐进渲染，计数始终正确
-const { visible, hasMore } = useInfiniteList(filtered, { pageSize: 60 })
+const { visible, hasMore, reset } = useInfiniteList(filtered, { pageSize: 60 })
+
+// 仅在主动切换（画师/游戏/筛选/搜索）时回第一批；收藏操作不会触发，避免列表刷新跳动
+watch(() => [s.currentGame, s.currentFilter, s.currentIllustrator, dq], () => reset())
 </script>
 
 <template>

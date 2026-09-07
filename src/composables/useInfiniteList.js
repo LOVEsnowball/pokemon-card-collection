@@ -1,4 +1,4 @@
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 
 // 渐进式加载：大列表默认只渲染前 N 项，滚动到底追加。
 // 当传入 onReachBottom 回调时切换为「网络分批」模式——列表数据本身由外部增量拉取，
@@ -20,8 +20,9 @@ export function useInfiniteList(source, options) {
   const visible = computed(() => onReachBottom ? source.value : source.value.slice(0, slice.value))
   const hasMore = computed(() => onReachBottom ? null : slice.value < source.value.length)
 
-  // 数据源整体替换（换画师 / 切换筛选 / 搜索）时回到第一批
-  watch(source, () => { if (!onReachBottom) slice.value = pageSize })
+  // 数据源整体替换（换画师 / 切换筛选 / 搜索）时由调用方显式 reset，
+  // 避免收藏等不影响数据集合的操作误触发回到第一批
+  function reset() { if (!onReachBottom) slice.value = pageSize }
 
   function onScroll() {
     const doc = document.documentElement
@@ -33,5 +34,5 @@ export function useInfiniteList(source, options) {
   onMounted(() => window.addEventListener('scroll', onScroll, { passive: true }))
   onUnmounted(() => window.removeEventListener('scroll', onScroll))
 
-  return { visible, hasMore }
+  return { visible, hasMore, reset }
 }
