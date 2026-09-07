@@ -27,6 +27,23 @@ self.addEventListener('fetch', (event) => {
   // 只拦截 http(s) 请求，跳过扩展、浏览器内部等 scheme，避免缓存保存失败
   if (!(url.protocol === 'http:' || url.protocol === 'https:')) return;
 
+  // 图片：network-first，优先回源拿最新，避免坏缓存卡死旧图；回源失败才用缓存兜底
+  if (event.request.destination === 'image') {
+    event.respondWith(
+      fetch(event.request)
+        .then((res) => {
+          // 仅缓存成功的图片响应，防止错误占位图被写进缓存
+          if (res && res.status === 200 && (res.headers.get('content-type') || '').includes('image')) {
+            const copy = res.clone();
+            caches.open(CACHE_NAME).then((c) => c.put(event.request, copy));
+          }
+          return res;
+        })
+        .catch(() => caches.match(event.request))
+    );
+    return;
+  }
+
   // Network-first for app shell, so card data stays fresh but app works offline
   if (event.request.mode === 'navigate') {
     event.respondWith(
